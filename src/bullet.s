@@ -127,11 +127,11 @@ ptr = 0
     ldx #0
 loop:
 
-.repeat 2, i
 .scope 
-    clc
     ldy bullet_dir, x
     lda bullet_sin_table, y
+    asl
+    clc
     bmi @negativeDY
     adc bullet_y, x
     bcc @doneAddY
@@ -145,9 +145,10 @@ loop:
     bcs :-
     sta bullet_y, x
 
-    clc
     ldy bullet_dir, x
     lda bullet_cos_table, y
+    asl
+    clc
     bmi @negativeDX
     adc bullet_x, x
     bcc @doneAddX
@@ -158,7 +159,6 @@ loop:
 @doneAddX:
     sta bullet_x, x
 .endscope
-.endrepeat
 
     inx
 nextBullet:

@@ -62,6 +62,39 @@ doneUpdateNT:
     lda ppuctrl
     sta PPUCTRL
 
+    ; set frame_ptr
+    lda player_bomb
+    beq :+
+    lda #.lobyte(bomb_frame)
+    sta frame_ptr+0
+    lda #.hibyte(bomb_frame)
+    sta frame_ptr+1
+    jmp doneSetFramePtr
+:
+    lda frame_number
+    and #%00000011
+    tax
+done_prepare_zp_nt:
+    lda ppu_update_nt_lo, x
+    sta frame_ptr+0
+    lda ppu_update_nt_hi, x
+    sta frame_ptr+1
+doneSetFramePtr:
+
+
+    lda frame_number
+    and #%00000100
+    asl
+    ora #$20
+    sta nt_hi
+
+    lda frame_number
+    and #%00000100
+    eor #%00000100
+    lsr
+    ora #PPUCTRL_NMI_ON | PPUCTRL_SPR_PT_1000
+    sta ppuctrl
+
     ; Restore registers and return.
     inc nmi_counter
     pla
@@ -297,39 +330,21 @@ doneUpdatePlayer:
     jsr update_explosions
     jsr prepare_game_sprites
 
-    ; set frame_ptr
-    lda player_bomb
-    beq :+
-    lda #.lobyte(bomb_frame)
-    sta frame_ptr+0
-    lda #.hibyte(bomb_frame)
-    sta frame_ptr+1
-    jmp doneSetFramePtr
-:
-    lda frame_number
-    and #%00000011
-    tax
-done_prepare_zp_nt:
-    lda ppu_update_nt_lo, x
-    sta frame_ptr+0
-    lda ppu_update_nt_hi, x
-    sta frame_ptr+1
-doneSetFramePtr:
-
-    lda frame_number
-    and #%00000100
-    asl
-    ora #$20
-    sta nt_hi
-
-    lda frame_number
-    and #%00000100
-    eor #%00000100
-    lsr
-    ora #PPUCTRL_NMI_ON | PPUCTRL_SPR_PT_1000
-    sta ppuctrl
-
     inc frame_number
+
+.if 0
+    lda #PPUMASK_BG_ON | PPUMASK_SPR_ON | PPUMASK_GRAYSCALE
+    sta PPUMASK
+
+    ldx #0
+    .repeat 30
+    :
+        nop
+        inx
+        bne :-
+    .endrepeat
+.endif
+
     jmp loop
 
 .endproc

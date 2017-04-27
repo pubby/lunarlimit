@@ -9,27 +9,6 @@
 .export update_explosions
 .export load_wave, update_waves
 
-.if 0
-; Like bitset8 except works on enemy_bitset.
-; Returns new enemy index in X.
-.proc alloc_enemy
-    lda enemy_bitset+0
-    jsr alloc_bitset8
-    sta enemy_bitset+0
-    bcc return
-    lda enemy_bitset+1
-    jsr alloc_bitset8
-    bcs return
-    sta enemy_bitset+1
-    ; Increment X by 8.
-    txa
-    axs #.lobyte(-8)
-return:
-    rts
-.endproc
-
-.endif
-
 .proc move_enemies
 x_iter = 0
 xv = 1
@@ -247,6 +226,8 @@ x_iter = 0
 x_sign_ext = 1
 y_sign_ext = 2
 dir_to_player = 3
+enemy_x_temp = 1
+enemy_y_temp = 2
     lda frame_number
     alr #%100
     lsr
@@ -382,25 +363,39 @@ dirAligned:
     dec enemy_ammo, x
     lda enemy_x_lo, x
     adc #4 ; carry cleared (bcs)
-    pha
+    sta enemy_x_temp
     lda enemy_y_lo, x
     clc
     adc #4
-    pha
+    sta enemy_y_temp
     lda dir_to_player
     sta bullet_dir, y
     tax
-    pla
+    ; Calc y
+    lda bullet_sin_table, x
+    asl
     clc
-    adc bullet_sin_table, x
-    clc
-    adc bullet_sin_table, x
+    bpl :+
+    adc enemy_y_temp
+    bcc doneShoot
+    bcs :++
+:
+    adc enemy_y_temp
+    bcs doneShoot
+:
     sta bullet_y, y
-    pla
+    ; Calc x
+    lda bullet_cos_table, x
+    asl
     clc
-    adc bullet_cos_table, x
-    clc
-    adc bullet_cos_table, x
+    bpl :+
+    adc enemy_x_temp
+    bcc doneShoot
+    bcs :++
+:
+    adc enemy_x_temp
+    bcs doneShoot
+:
     sta bullet_x, y
     iny
     sty num_bullets

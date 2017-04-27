@@ -19,8 +19,8 @@
     sta num_enemies
     sta sprite_hit
     sta powerup_type
-    sta wave_number
     sta player_dir
+    sta wave_number
     .repeat 4, i
         sta score+i
     .endrepeat
@@ -137,6 +137,57 @@ notPressingA:
     sta player_dir
 notPressingB:
 
+
+    ; Check collisions
+    lda player_invuln
+    bne invuln
+    lda player_shield
+    bne notHit
+    lda sprite_hit
+    beq notHit
+
+    lda #$16
+    sta bgcol
+    lda #$06
+    sta bgcol_next
+
+    ; Create an explosion
+    lda explosion_bitset
+    jsr alloc_bitset8
+    bcs doneExplosion
+    sta explosion_bitset
+    lda player_x
+    sec
+    sbc #8
+    sta explosion_x, x
+    lda player_y
+    sec
+    sbc #8
+    sta explosion_y, x
+    lda #16
+    sta explosion_timer, x
+    lda #1
+    sta explosion_palette, x
+    ; Decrease life and shit
+    dec player_life
+    bne :+
+    lda #MENU_GAMEOVER
+    sta menu
+    lda #0
+    sta pbullet_bitset
+:
+    lda #7
+    ldx #FT_SFX_CH2
+    jsr FamiToneSfxPlay
+    jsr respawn_player
+    jmp updateBullets
+invuln:
+    dec player_invuln
+doneExplosion:
+notHit:
+    lda #0
+    sta sprite_hit
+
     lda buttons_pressed
     and #BUTTON_SELECT
     beq notPressingSelect
@@ -213,56 +264,6 @@ skipDecrease:
     dex
     stx player_bomb
 :
-
-    ; Check collisions
-    lda player_invuln
-    bne invuln
-    lda player_shield
-    bne notHit
-    lda sprite_hit
-    beq notHit
-
-    lda #$16
-    sta bgcol
-    lda #$06
-    sta bgcol_next
-
-    ; Create an explosion
-    lda explosion_bitset
-    jsr alloc_bitset8
-    bcs doneExplosion
-    sta explosion_bitset
-    lda player_x
-    sec
-    sbc #8
-    sta explosion_x, x
-    lda player_y
-    sec
-    sbc #8
-    sta explosion_y, x
-    lda #16
-    sta explosion_timer, x
-    lda #1
-    sta explosion_palette, x
-    ; Decrease life and shit
-    dec player_life
-    bne :+
-    lda #MENU_GAMEOVER
-    sta menu
-    lda #0
-    sta pbullet_bitset
-:
-    lda #7
-    ldx #FT_SFX_CH2
-    jsr FamiToneSfxPlay
-    jsr respawn_player
-    jmp notHit
-invuln:
-    dec player_invuln
-doneExplosion:
-notHit:
-    lda #0
-    sta sprite_hit
 
 
     ; Powerup collision checks
@@ -358,6 +359,7 @@ noPowerUpCollision:
     jsr FamiToneSfxPlay
 doneFireBullet:
 
+updateBullets:
     ldx #$FF
     lda pbullet_bitset
     beq return
